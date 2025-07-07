@@ -1,3 +1,8 @@
+# Custom
+data/dhd_pedestrian_traffic_trainval_annos/
+data/dhd_traffic_trainval_images/
+data/yolov5
+
 # Byte-compiled / optimized / DLL files
 __pycache__/
 *.py[codz]
