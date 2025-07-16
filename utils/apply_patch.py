@@ -4,19 +4,21 @@ from pathlib import Path
 import shutil
 
 # Configuration
-ratio = 0.75  # fraction of bbox width to use for patch size
+ratio = 0.6  # fraction of bbox width to use for patch size
+
+patch_type = 'Naturalistic1'
 
 # Paths
 img_dir = Path(r"C:\Adrianov\Projects\Project-Satanael\data\tju-dhd\images\test")
 label_dir = Path(r"C:\Adrianov\Projects\Project-Satanael\data\tju-dhd\labels\test")
-patch_path = Path(r"C:\Adrianov\Projects\Project-Satanael\data\adversarial_patch\v5-demo.png")
+patch_path = Path(rf"C:\Adrianov\Projects\Project-Satanael\adv_patches\{patch_type}.png")
 # img_dir = Path("/home/ubuntu/adrian/tju-dhd/images/test")
 # label_dir = Path("/home/ubuntu/adrian/tju-dhd/labels/test")
 # patch_path = Path("/home/ubuntu/adrian/v5-demo.png")
 
 # Output dirs
-out_img_dir = Path(r"C:\Adrianov\Projects\Project-Satanael\data\tju-dhd\patched\images")
-out_label_dir = Path(r"C:\Adrianov\Projects\Project-Satanael\data\tju-dhd\patched\labels")
+out_img_dir = Path(rf"C:\Adrianov\Projects\Project-Satanael\data\tju-dhd\patched_{patch_type}\images")
+out_label_dir = Path(rf"C:\Adrianov\Projects\Project-Satanael\data\tju-dhd\patched_{patch_type}\labels")
 # out_img_dir = Path("/home/ubuntu/adrian/tju-dhd/patched/images/test")
 # out_label_dir = Path("/home/ubuntu/adrian/tju-dhd/patched/labels/test")
 out_img_dir.mkdir(parents=True, exist_ok=True)
