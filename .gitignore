@@ -4,6 +4,7 @@ data/dhd_traffic_trainval_images/
 data/yolov5
 data/tju-dhd
 models/
+saliency_models/
 
 # Byte-compiled / optimized / DLL files
 __pycache__/
