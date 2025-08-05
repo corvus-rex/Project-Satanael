@@ -51,7 +51,7 @@ def recompress_diff(imorig, checkDisplacements):
         mins.append(minInd)
         Output.append(minOverallDelta)
         delta = Deltas[minInd]
-        delta = (delta - np.min(delta)) / (np.max(delta) - np.min(delta))
+        delta = (delta - np.min(delta)) / (np.max(delta) - np.min(delta) + 5e-12)
 
         dispImages.append(cv2.resize(delta.astype(np.float32), (delta.shape[1] // 4, delta.shape[0] // 4), interpolation=cv2.INTER_LINEAR))
 

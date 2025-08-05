@@ -5,8 +5,14 @@ data/yolov5
 data/tju-dhd
 data/APRICOTv1.0
 data/
+masked/
 models/
+results_mask/
+results_overlay/
+results_segment/
+results_segment_grey/
 saliency_models/
+
 
 # Byte-compiled / optimized / DLL files
 __pycache__/
