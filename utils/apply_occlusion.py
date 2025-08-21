@@ -4,7 +4,8 @@ from pathlib import Path
 import shutil
 
 # Configuration
-ratio = 0.6
+PATCH_AREA_RATIO = 0.20  # max ratio of bbox area covered by square patch
+MIN_S = 60               # minimum patch side length (pixels)
 
 # Paths
 img_dir = Path(r"C:\Adrianov\Projects\Project-Satanael\data\tju-dhd\images\test")
@@ -28,6 +29,8 @@ for img_path in img_dir.glob("*.jpg"):
     with open(label_path, "r") as f:
         lines = f.read().splitlines()
 
+    patched = False  # track whether at least one patch was applied
+
     for line in lines:
         parts = line.strip().split()
         if len(parts) != 5:
@@ -35,16 +38,21 @@ for img_path in img_dir.glob("*.jpg"):
 
         cls, x_center, y_center, bw, bh = map(float, parts)
         if int(cls) != 0:
-            continue
+            continue  # only occlude class 0
 
+        # Convert YOLO format to pixel coordinates
         xc, yc = int(x_center * w), int(y_center * h)
         box_w, box_h = int(bw * w), int(bh * h)
 
-        patch_size = int(box_w * ratio)
-        if patch_size < 1:
+        # Compute patch size (square with area <= PATCH_AREA_RATIO of bbox)
+        max_patch_area = int(PATCH_AREA_RATIO * box_w * box_h)
+        patch_size = int(np.sqrt(max_patch_area))
+
+        # Skip if patch is too small
+        if patch_size < MIN_S:
             continue
 
-        # Compute top-left coordinates for placement
+        # Center patch at bbox center
         x1 = xc - patch_size // 2
         y1 = yc - patch_size // 2
         x2 = x1 + patch_size
@@ -65,12 +73,14 @@ for img_path in img_dir.glob("*.jpg"):
 
         # Apply patch
         img[y1_clamp:y2_clamp, x1_clamp:x2_clamp] = black_patch
+        patched = True
 
-    # Save output
-    out_img_path = out_img_dir / img_path.name
-    out_label_path = out_label_dir / label_path.name
+    # Save output only if at least one patch was applied
+    if patched:
+        out_img_path = out_img_dir / img_path.name
+        out_label_path = out_label_dir / label_path.name
 
-    cv2.imwrite(str(out_img_path), img)
-    shutil.copy(str(label_path), str(out_label_path))
+        cv2.imwrite(str(out_img_path), img)
+        shutil.copy(str(label_path), str(out_label_path))
 
 print("Patched test set with black boxes created.")

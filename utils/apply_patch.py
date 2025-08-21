@@ -2,33 +2,33 @@ import cv2
 import numpy as np
 from pathlib import Path
 import shutil
+import random
 
 # Configuration
-ratio = 0.6  # fraction of bbox width to use for patch size
+PATCH_AREA_RATIO = 0.20  # max ratio of bbox area covered by square patch
+MIN_S = 60               # minimum patch side length (pixels)
 
-patch_type = 'Naturalistic1'
+# List of possible patch types
+patch_types = ['Naturalistic1', 'Naturalistic2', 'Naturalistic3', 'Naturalistic4', 'Naturalistic5', 'Naturalistic6', 'TSEA1']
 
 # Paths
 img_dir = Path(r"C:\Adrianov\Projects\Project-Satanael\data\tju-dhd\images\test")
 label_dir = Path(r"C:\Adrianov\Projects\Project-Satanael\data\tju-dhd\labels\test")
-patch_path = Path(rf"C:\Adrianov\Projects\Project-Satanael\adv_patches\{patch_type}.png")
-# img_dir = Path("/home/ubuntu/adrian/tju-dhd/images/test")
-# label_dir = Path("/home/ubuntu/adrian/tju-dhd/labels/test")
-# patch_path = Path("/home/ubuntu/adrian/v5-demo.png")
+patch_root = Path(r"C:\Adrianov\Projects\Project-Satanael\adv_patches")
 
-# Output dirs
-out_img_dir = Path(rf"C:\Adrianov\Projects\Project-Satanael\data\tju-dhd\patched_{patch_type}\images")
-out_label_dir = Path(rf"C:\Adrianov\Projects\Project-Satanael\data\tju-dhd\patched_{patch_type}\labels")
-# out_img_dir = Path("/home/ubuntu/adrian/tju-dhd/patched/images/test")
-# out_label_dir = Path("/home/ubuntu/adrian/tju-dhd/patched/labels/test")
+out_img_dir = Path(rf"C:\Adrianov\Projects\Project-Satanael\data\tju-dhd\patched_random\images")
+out_label_dir = Path(rf"C:\Adrianov\Projects\Project-Satanael\data\tju-dhd\patched_random\labels")
 out_img_dir.mkdir(parents=True, exist_ok=True)
 out_label_dir.mkdir(parents=True, exist_ok=True)
 
-# Load patch
-patch = cv2.imread(str(patch_path), cv2.IMREAD_UNCHANGED)
-if patch is None:
-    raise FileNotFoundError(f"Patch not found at {patch_path}")
-patch_h, patch_w = patch.shape[:2]
+# Preload all patches
+patches = {}
+for ptype in patch_types:
+    ppath = patch_root / f"{ptype}.png"
+    patch_img = cv2.imread(str(ppath), cv2.IMREAD_UNCHANGED)
+    if patch_img is None:
+        raise FileNotFoundError(f"Patch not found at {ppath}")
+    patches[ptype] = patch_img
 
 # Process each image
 for img_path in img_dir.glob("*.jpg"):
@@ -44,6 +44,13 @@ for img_path in img_dir.glob("*.jpg"):
     with open(label_path, "r") as f:
         lines = f.read().splitlines()
 
+    patched = False  # track whether a patch was applied
+    new_labels = lines.copy()  # keep original person labels
+
+    # Randomly choose one patch type for this image
+    chosen_type = random.choice(patch_types)
+    patch = patches[chosen_type]
+
     for line in lines:
         parts = line.strip().split()
         if len(parts) != 5:
@@ -51,16 +58,21 @@ for img_path in img_dir.glob("*.jpg"):
 
         cls, x_center, y_center, bw, bh = map(float, parts)
         if int(cls) != 0:
-            continue
+            continue  # only apply patch to class 0 (person)
 
+        # Convert YOLO format to pixel coordinates
         xc, yc = int(x_center * w), int(y_center * h)
         box_w, box_h = int(bw * w), int(bh * h)
 
-        patch_size = int(box_w * ratio)
+        # Compute patch size (square with area <= PATCH_AREA_RATIO of bbox)
+        max_patch_area = int(PATCH_AREA_RATIO * box_w * box_h)
+        patch_size = int(np.sqrt(max_patch_area))
 
-        if patch_size < 1:
+        # Skip if patch is too small
+        if patch_size < MIN_S:
             continue
 
+        # Resize patch
         resized_patch = cv2.resize(patch, (patch_size, patch_size), interpolation=cv2.INTER_AREA)
 
         # Compute top-left coordinates for placement
@@ -93,12 +105,23 @@ for img_path in img_dir.glob("*.jpg"):
             region[:] = patch_crop
 
         img[y1_clamp:y2_clamp, x1_clamp:x2_clamp] = region
+        patched = True
 
-    # Save output
-    out_img_path = out_img_dir / img_path.name
-    out_label_path = out_label_dir / label_path.name
+        # Compute YOLO bbox for patch (class 1)
+        patch_cx = ((x1_clamp + x2_clamp) / 2) / w
+        patch_cy = ((y1_clamp + y2_clamp) / 2) / h
+        patch_bw = (x2_clamp - x1_clamp) / w
+        patch_bh = (y2_clamp - y1_clamp) / h
 
-    cv2.imwrite(str(out_img_path), img)
-    shutil.copy(str(label_path), str(out_label_path))
+        new_labels.append(f"1 {patch_cx:.6f} {patch_cy:.6f} {patch_bw:.6f} {patch_bh:.6f}")
 
-print("Patched test set created.")
+    # Save output only if at least one patch was applied
+    if patched:
+        out_img_path = out_img_dir / img_path.name
+        out_label_path = out_label_dir / label_path.name
+
+        cv2.imwrite(str(out_img_path), img)
+        with open(out_label_path, "w") as f:
+            f.write("\n".join(new_labels) + "\n")
+
+print("Patched test set created (random patch per image, YOLO labels updated).")
