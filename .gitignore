@@ -14,7 +14,14 @@ results_segment/
 results_segment_grey/
 results_segment_grey_APRICOT/
 saliency_models/
-
+defense_pipeline/false_negs_02_APRICOT
+defense_pipeline/false_negs_05_APRICOT
+defense_pipeline/false_negs_TJUDHD
+masked_adaptive/
+masked_APRICOT/
+results_cd_grey/
+results_mask_adaptive/
+results_mask_adaptive_otsu/
 
 # Byte-compiled / optimized / DLL files
 __pycache__/

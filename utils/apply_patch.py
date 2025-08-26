@@ -6,18 +6,19 @@ import random
 
 # Configuration
 PATCH_AREA_RATIO = 0.20  # max ratio of bbox area covered by square patch
-MIN_S = 60               # minimum patch side length (pixels)
+MIN_S = 120               # minimum patch side length (pixels)
 
 # List of possible patch types
-patch_types = ['Naturalistic1', 'Naturalistic2', 'Naturalistic3', 'Naturalistic4', 'Naturalistic5', 'Naturalistic6', 'TSEA1']
+# patch_types = ['Naturalistic1', 'Naturalistic2', 'Naturalistic3', 'Naturalistic4', 'Naturalistic5', 'Naturalistic6', 'TSEA1']
+patch_types = ['Naturalistic1', 'Naturalistic3', 'Naturalistic4', 'Naturalistic6', 'TSEA1']
 
 # Paths
-img_dir = Path(r"C:\Adrianov\Projects\Project-Satanael\data\tju-dhd\images\test")
-label_dir = Path(r"C:\Adrianov\Projects\Project-Satanael\data\tju-dhd\labels\test")
+img_dir = Path(r"C:\Adrianov\Projects\Project-Satanael\data\tju-dhd\images\val")
+label_dir = Path(r"C:\Adrianov\Projects\Project-Satanael\data\tju-dhd\labels\val")
 patch_root = Path(r"C:\Adrianov\Projects\Project-Satanael\adv_patches")
 
-out_img_dir = Path(rf"C:\Adrianov\Projects\Project-Satanael\data\tju-dhd\patched_random\images")
-out_label_dir = Path(rf"C:\Adrianov\Projects\Project-Satanael\data\tju-dhd\patched_random\labels")
+out_img_dir = Path(rf"C:\Adrianov\Projects\Project-Satanael\data\tju-dhd\patched_random_bigger\images")
+out_label_dir = Path(rf"C:\Adrianov\Projects\Project-Satanael\data\tju-dhd\patched_random_bigger\labels")
 out_img_dir.mkdir(parents=True, exist_ok=True)
 out_label_dir.mkdir(parents=True, exist_ok=True)
 
