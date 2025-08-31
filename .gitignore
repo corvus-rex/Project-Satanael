@@ -22,6 +22,9 @@ masked_APRICOT/
 results_cd_grey/
 results_mask_adaptive/
 results_mask_adaptive_otsu/
+.venv311/
+pad_res/
+runs/
 
 # Byte-compiled / optimized / DLL files
 __pycache__/
