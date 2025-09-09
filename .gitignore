@@ -20,6 +20,7 @@ defense_pipeline/false_negs_TJUDHD
 masked_adaptive/
 masked_APRICOT/
 results_cd_grey/
+results_cd_grey_test/
 results_mask_adaptive/
 results_mask_adaptive_otsu/
 .venv311/
