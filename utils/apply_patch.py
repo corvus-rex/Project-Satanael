@@ -6,10 +6,10 @@ import random
 
 # Configuration
 PATCH_AREA_RATIO = 0.20  # max ratio of bbox area covered by square patch
-MIN_S = 120               # minimum patch side length (pixels)
+MIN_S = 60               # minimum patch side length (pixels)
 
 # List of possible patch types
-# patch_types = ['Naturalistic1', 'Naturalistic2', 'Naturalistic3', 'Naturalistic4', 'Naturalistic5', 'Naturalistic6', 'TSEA1']
+patch_types = ['Naturalistic1', 'Naturalistic2', 'Naturalistic3', 'Naturalistic4', 'Naturalistic5', 'Naturalistic6', 'TSEA1']
 # patch_types = ['Naturalistic1', 'Naturalistic3', 'Naturalistic4', 'Naturalistic6', 'TSEA1']
 patch_types = ['Naturalistic2', 'Naturalistic5']
 
