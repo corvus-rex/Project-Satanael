@@ -28,6 +28,8 @@ pad_res/
 runs/
 false_negs/
 results_cd_grey_test_APRICOT/
+results_cd_grey_test_final_eval/
+results_cd_grey_test_final_eval_backup/
 
 # Byte-compiled / optimized / DLL files
 __pycache__/
