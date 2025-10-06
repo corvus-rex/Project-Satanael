@@ -28,6 +28,7 @@ results_mask_adaptive_otsu/
 pad_res/
 runs/
 false_negs/
+results/
 results_pad_test_final_eval/
 results_cd_grey_test_APRICOT/
 results_cd_grey_test_final_eval/

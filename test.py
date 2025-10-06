@@ -6,6 +6,7 @@ from PIL import Image
 import numpy as np
 from pathlib import Path
 import matplotlib.pyplot as plt
+import time
 import warnings
 from skimage import io, transform
 from skimage.util import img_as_ubyte
@@ -17,6 +18,7 @@ from sklearn.ensemble import RandomForestClassifier
 import xgboost as xgb
 import argparse
 from tqdm import tqdm
+import requests
 
 compressdiff_path = os.path.abspath("./defenselib/spatial_heterogeneity.py")
 spec = importlib.util.spec_from_file_location("compressdiff", compressdiff_path)
@@ -196,8 +198,11 @@ if __name__ == "__main__":
 
     TEST_TYPES = ['Naturalistic5', 'Naturalistic6', 'TSEA2']
 
+    RESIZE = 1024
+
     parser = argparse.ArgumentParser()
     parser.add_argument("--classify-only", action="store_true", dest="classify", help="Only performs feature extraction and classification")
+    parser.add_argument("--inpaint-only", action="store_true", dest="inpaint", help="Only performs feature extraction and classification")
     args = parser.parse_args()
     print(args.classify)
     if args.classify:
@@ -232,3 +237,41 @@ if __name__ == "__main__":
                             rf_path=rf_path,
                             models=['xgb', 'rf'])
                     
+    if args.inpaint:
+        data_dir = os.path.join(ROOT_DIR, 'data', 'tju-dhd', 'eval_final_patched')
+        mask_dir = os.path.join(ROOT_DIR, 'results', 'adv_mask')
+        start = time.time()
+        i = 0
+        for d in DIRS:
+            for patch in PATCH_TYPES:
+                if d == 'Train' and patch in TEST_TYPES:
+                    continue
+                if d == 'Train':
+                    label_dir = 'labels'
+                if d == 'Test':
+                    label_dir = 'labels_w_adv'
+
+                img_dir = os.path.join(data_dir, d, patch, 'images')
+                for fname in tqdm(os.listdir(img_dir), desc=f"Inpainting adversarial regions {patch} {d}..."):
+                    fname_stemmed, _ = os.path.splitext(fname)
+                    
+                    # --- Load & resize image to 512x512 ---
+                    image = cv2.imread(os.path.join(img_dir, fname))
+                    image = cv2.resize(image, (512, 512), interpolation=cv2.INTER_AREA)
+                    _, img_bytes = cv2.imencode(".jpg", image)
+
+                    # --- Load & resize mask to 512x512 ---
+                    mask_path = os.path.join(mask_dir, f"{fname_stemmed}_mask_xgb.png")
+                    mask = cv2.imread(mask_path, cv2.IMREAD_GRAYSCALE)  # ensure single channel
+                    mask = cv2.resize(mask, (512, 512), interpolation=cv2.INTER_NEAREST)  # keep binary values
+                    _, mask_bytes = cv2.imencode(".png", mask)
+
+                    # --- Send request ---
+                    files = {
+                        "image": (fname, img_bytes.tobytes(), "image/jpeg"),
+                        "mask": (os.path.basename(mask_path), mask_bytes.tobytes(), "image/png")
+                    }
+                    r = requests.post("http://127.0.0.1:1337/inpaint", files=files)
+                    i += 1
+        elapsed = time.time() - start
+        print(f"{i} images processed. {elapsed:.2f} seconds elasped. Avg time: {elapsed/i:.2f} seconds")
