@@ -17,8 +17,8 @@ class InpaintingData(Dataset):
         # image and mask
         self.image_path = []
         for ext in ["*.jpg", "*.png"]:
-            self.image_path.extend(glob(os.path.join(args.dir_image, args.data_train, ext)))
-        self.mask_path = glob(os.path.join(args.dir_mask, args.mask_type, "*.png"))
+            self.image_path.extend(glob(os.path.join(args.dir_image, ext)))
+        self.mask_path = glob(os.path.join(args.dir_mask, "*.png"))
 
         # build image to mask mapping using basename without extension
         self.paired_masks = {}
@@ -92,9 +92,9 @@ if __name__ == "__main__":
     from attrdict import AttrDict
 
     args = {
-        "dir_image": "../../experiments/data",
+        "dir_image": "../../experiments/data/images",
         "data_train": "places2",
-        "dir_mask": "../../experiments/data",
+        "dir_mask": "../../experiments/data/masks",
         "mask_type": "pconv",
         "image_size": 512,
     }

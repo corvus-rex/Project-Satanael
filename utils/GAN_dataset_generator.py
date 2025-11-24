@@ -20,8 +20,7 @@ def is_in_test(imname):
         dir_path = os.path.join(TEST_SET, p, 'images')
         if os.path.exists(os.path.join(dir_path, imname)):
             return True
-        else:
-            return False
+    return False
 
 def create_masks(images_dir, labels_dir, output_dir, resize=512, check_test=True):
 
