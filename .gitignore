@@ -247,3 +247,4 @@ __marimo__/
 /venv_unix
 /reconstruction/experiments/data
 *.tar
+/results_cd_grey_test_final_eval_diag
