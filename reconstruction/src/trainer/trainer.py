@@ -89,8 +89,16 @@ class Trainer:
     def train(self):
         pbar = range(self.iteration, self.args.iterations)
         if self.args.global_rank == 0:
-            pbar = tqdm(range(self.args.iterations), initial=self.iteration, dynamic_ncols=True, smoothing=0.01)
+            pbar = tqdm(range(self.args.iterations), initial=self.iteration,
+                        dynamic_ncols=True, smoothing=0.01)
             timer_data, timer_model = timer(), timer()
+
+        # Early stopping variables
+        if self.args.early_stop == True:
+            best_metric = float("inf")
+            patience_counter = 0
+            metric_name = self.args.early_stop_metric
+            patience_limit = self.args.early_stop_patience
 
         for idx in pbar:
             self.iteration += 1
@@ -102,25 +110,29 @@ class Trainer:
                 timer_data.hold()
                 timer_model.tic()
 
-            # in: [rgb(3) + edge(1)]
+            # Forward
             pred_img = self.netG(images_masked, masks)
             comp_img = (1 - masks) * images + masks * pred_img
 
-            # reconstruction losses
+            # Reconstruction losses
             losses = {}
             for name, weight in self.args.rec_loss.items():
                 losses[name] = weight * self.rec_loss_func[name](pred_img, images)
 
-            # adversarial loss
+            # Adversarial losses
             dis_loss, gen_loss = self.adv_loss(self.netD, comp_img, images, masks)
             losses["advg"] = gen_loss * self.args.adv_weight
 
-            # backforward
+            # Backward
             self.optimG.zero_grad()
             self.optimD.zero_grad()
-            sum(losses.values()).backward()
+
+            total_g_loss = sum(losses.values())
+            total_g_loss.backward()
+
             losses["advd"] = dis_loss
             dis_loss.backward()
+
             self.optimG.step()
             self.optimD.step()
 
@@ -128,8 +140,24 @@ class Trainer:
                 timer_model.hold()
                 timer_data.tic()
 
-            # logs
-            # scalar_reduced = reduce_loss_dict(losses, self.args.world_size)
+            # Early stopping logic
+            if self.args.early_stop == True:
+                current_metric = losses[metric_name].item()
+
+                if current_metric < best_metric:
+                    best_metric = current_metric
+                    patience_counter = 0
+
+                else:
+                    patience_counter += 1
+
+                if patience_counter >= patience_limit:
+                    if self.args.global_rank == 0:
+                        print(f"\nEarly stopping triggered at iteration {self.iteration}. "
+                            f"{metric_name} did not improve for {patience_limit} steps.")
+                    break  # End training early
+
+            # Logging
             if self.args.global_rank == 0 and (self.iteration % self.args.print_every == 0):
                 pbar.update(self.args.print_every)
                 description = f"mt:{timer_model.release():.1f}s, dt:{timer_data.release():.1f}s, "
@@ -138,6 +166,7 @@ class Trainer:
                     if self.args.tensorboard:
                         self.writer.add_scalar(key, val.item(), self.iteration)
                 pbar.set_description((description))
+
                 if self.args.tensorboard:
                     self.writer.add_image("mask", make_grid(masks), self.iteration)
                     self.writer.add_image("orig", make_grid((images + 1.0) / 2.0), self.iteration)

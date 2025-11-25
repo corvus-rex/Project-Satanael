@@ -4,8 +4,8 @@ import argparse
 parser = argparse.ArgumentParser(description="Image Inpainting")
 
 # data specifications
-parser.add_argument("--dir_image", type=str, default="../experiments/data/images", help="image dataset directory")
-parser.add_argument("--dir_mask", type=str, default="../experiments/data/masks", help="mask dataset directory")
+parser.add_argument("--dir_image", type=str, default="../experiments/data/images", help="image dataset directory") # <
+parser.add_argument("--dir_mask", type=str, default="../experiments/data/masks", help="mask dataset directory") # <
 parser.add_argument("--data_train", type=str, default="places2", help="dataname used for training")
 parser.add_argument("--data_test", type=str, default="places2", help="dataname used for testing")
 parser.add_argument("--image_size", type=int, default=512, help="image size used during training")
@@ -16,7 +16,7 @@ parser.add_argument("--model", type=str, default="aotgan", help="model name")
 parser.add_argument("--block_num", type=int, default=8, help="number of AOT blocks")
 parser.add_argument("--rates", type=str, default="1+2+4+8", help="dilation rates used in AOT block")
 parser.add_argument("--gan_type", type=str, default="smgan", help="discriminator types")
-parser.add_argument("--freeze_generator", type=str, default="conf1", help="conf1: Freeze all but final layer of decoder, conf2: Freeze all but decoder, none: Do not freeze any layer")
+parser.add_argument("--freeze_generator", type=str, default="conf1", help="conf1: Freeze all but final layer of decoder, conf2: Freeze all but decoder, none: Do not freeze any layer") # <
 
 
 # hardware specifications
@@ -37,15 +37,17 @@ parser.add_argument("--rec_loss", type=str, default="1*L1+250*Style+0.1*Perceptu
 parser.add_argument("--adv_weight", type=float, default=0.01, help="loss weight for adversarial loss")
 
 # training specifications
-parser.add_argument("--iterations", type=int, default=1e6, help="the number of iterations for training")
+parser.add_argument("--iterations", type=int, default=50000, help="the number of iterations for training") # <
 parser.add_argument("--batch_size", type=int, default=8, help="batch size in each mini-batch")
 parser.add_argument("--port", type=int, default=22334, help="tcp port for distributed training")
+parser.add_argument("--early_stop", type=bool, default=True, help="Enable early stopping for training") # <
+parser.add_argument("--early_stop_metric", type=str, default='advg', help="Loss criteria for early stopping") # <
+parser.add_argument("--early_stop_patience", type=int, default=50, help="Number of epochs/iterations with no improvement") # <
 parser.add_argument("--resume", action="store_true", help="resume from previous iteration")
-
 
 # log specifications
 parser.add_argument("--print_every", type=int, default=10, help="frequency for updating progress bar")
-parser.add_argument("--save_every", type=int, default=1e4, help="frequency for saving models")
+parser.add_argument("--save_every", type=int, default=100, help="frequency for saving models") # <
 parser.add_argument("--save_dir", type=str, default="../experiments", help="directory for saving models and logs")
 parser.add_argument(
     "--tensorboard", action="store_true", help="default: false, since it will slow training. use it for debugging"
