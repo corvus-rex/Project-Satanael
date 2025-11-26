@@ -18,17 +18,7 @@ class InpaintingData(Dataset):
         self.image_path = []
         for ext in ["*.jpg", "*.png"]:
             self.image_path.extend(glob(os.path.join(args.dir_image, ext)))
-        self.mask_path = glob(os.path.join(args.dir_mask, "*.png"))
-
-        # build image to mask mapping using basename without extension
-        self.paired_masks = {}
-        mask_dict = {os.path.splitext(os.path.basename(m))[0]: m for m in self.mask_path}
-        for img in self.image_path:
-            stem = os.path.splitext(os.path.basename(img))[0]  # e.g., "A" from "A.jpg"
-            if stem in mask_dict:
-                self.paired_masks[img] = mask_dict[stem]
-            else:
-                raise FileNotFoundError(f"Missing mask for image: {stem}")
+        self.mask_path = glob(os.path.join(args.dir_mask, args.mask_type, "*.png"))
 
         # augmentation
         self.img_trans = transforms.Compose(
@@ -50,44 +40,26 @@ class InpaintingData(Dataset):
     def __len__(self):
         return len(self.image_path)
 
-    ## -----------This method requires randomized image mask-----------
-    # def __getitem__(self, index):
-    #     # load image
-    #     image = Image.open(self.image_path[index]).convert("RGB")
-    #     filename = os.path.basename(self.image_path[index])
-
-    #     if self.mask_type == "pconv":
-    #         index = np.random.randint(0, len(self.mask_path))
-    #         mask = Image.open(self.mask_path[index])
-    #         mask = mask.convert("L")
-    #     else:
-    #         mask = np.zeros((self.h, self.w)).astype(np.uint8)
-    #         mask[self.h // 4 : self.h // 4 * 3, self.w // 4 : self.w // 4 * 3] = 1
-    #         mask = Image.fromarray(mask).convert("L")
-
-    #     # augment
-    #     image = self.img_trans(image) * 2.0 - 1.0
-    #     mask = F.to_tensor(self.mask_trans(mask))
-
-    #     return image, mask, filename
-
     def __getitem__(self, index):
-        img_path = self.image_path[index]
-
         # load image
-        image = Image.open(img_path).convert("RGB")
-        filename = os.path.basename(img_path)
+        image = Image.open(self.image_path[index]).convert("RGB")
+        filename = os.path.basename(self.image_path[index])
 
-        # load paired mask
-        mask_path = self.paired_masks[img_path]
-        mask = Image.open(mask_path).convert("L")
+        if self.mask_type == "pconv":
+            index = np.random.randint(0, len(self.mask_path))
+            mask = Image.open(self.mask_path[index])
+            mask = mask.convert("L")
+        else:
+            mask = np.zeros((self.h, self.w)).astype(np.uint8)
+            mask[self.h // 4 : self.h // 4 * 3, self.w // 4 : self.w // 4 * 3] = 1
+            mask = Image.fromarray(mask).convert("L")
 
         # augment
         image = self.img_trans(image) * 2.0 - 1.0
         mask = F.to_tensor(self.mask_trans(mask))
 
         return image, mask, filename
-    
+
 if __name__ == "__main__":
     from attrdict import AttrDict
 
