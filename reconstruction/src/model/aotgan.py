@@ -118,8 +118,11 @@ def my_layer_norm(feat):
 class Discriminator(BaseNetwork):
     def __init__(
         self,
+        args
     ):
         super(Discriminator, self).__init__()
+        self.freeze_mode = getattr(args, "freeze_discriminator", None)
+        
         inc = 3
         self.conv = nn.Sequential(
             spectral_norm(nn.Conv2d(inc, 64, 4, stride=2, padding=1, bias=False)),
@@ -135,7 +138,7 @@ class Discriminator(BaseNetwork):
 
         self.init_weights()
 
-        if self.args.freeze_discriminator:
+        if self.freeze_mode:
             for p in self.netD.parameters():
                 p.requires_grad = False
             if self.args.global_rank == 0:
