@@ -44,9 +44,9 @@ class Trainer:
 
     def load(self):
         try:
-            print(os.path.join(self.args.save_dir, "G*.pt"))
-            print(os.path.abspath(self.args.save_dir))
-            gpath = sorted(glob(os.path.join(self.args.save_dir, "G*.pt")))[-1]
+            # print(os.path.join(self.args.save_dir, "G*.pt"))
+            # print(os.path.abspath(self.args.save_dir))
+            gpath = sorted(glob(os.path.join(self.args.save_dir, '..', "G*.pt")))[-1]
             self.netG.load_state_dict(torch.load(gpath, map_location="cuda"))
             self.iteration = int(os.path.basename(gpath)[1:-3])
             if self.args.global_rank == 0:
@@ -55,7 +55,7 @@ class Trainer:
             print(f"[!!] Failed to load generator checkpoint: {e}")
 
         try:
-            dpath = sorted(glob(os.path.join(self.args.save_dir, "D*.pt")))[-1]
+            dpath = sorted(glob(os.path.join(self.args.save_dir, '..', "D*.pt")))[-1]
             self.netD.load_state_dict(torch.load(dpath, map_location="cuda"))
             if self.args.global_rank == 0:
                 print(f"[**] Loading discriminator network from {dpath}")
@@ -63,7 +63,7 @@ class Trainer:
             print(f"[!!] Failed to load discriminator checkpoint: {e}")
 
         try:
-            opath = sorted(glob(os.path.join(self.args.save_dir, "O*.pt")))[-1]
+            opath = sorted(glob(os.path.join(self.args.save_dir, '..', "O*.pt")))[-1]
             data = torch.load(opath, map_location="cuda")
             self.optimG.load_state_dict(data["optimG"])
             self.optimD.load_state_dict(data["optimD"])
