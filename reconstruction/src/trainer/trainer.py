@@ -44,6 +44,7 @@ class Trainer:
 
     def load(self):
         try:
+            print('aFox')
             gpath = sorted(glob(os.path.join(self.args.save_dir, "G*.pt")))[-1]
             self.netG.load_state_dict(torch.load(gpath, map_location="cuda"))
             self.iteration = int(os.path.basename(gpath)[1:-3])
