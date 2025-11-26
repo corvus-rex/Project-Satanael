@@ -40,7 +40,7 @@ parser.add_argument("--adv_weight", type=float, default=0.01, help="loss weight 
 parser.add_argument("--iterations", type=int, default=50000, help="the number of iterations for training") # <
 parser.add_argument("--batch_size", type=int, default=8, help="batch size in each mini-batch")
 parser.add_argument("--port", type=int, default=22334, help="tcp port for distributed training")
-parser.add_argument("--early_stop", type=bool, default=True, help="Enable early stopping for training") # <
+parser.add_argument("--early_stop", type=lambda x: x.lower() == "true", default=True, help="Enable or disable early stopping (True/False)")
 parser.add_argument("--early_stop_metric", type=str, default='advg', help="Loss criteria for early stopping") # <
 parser.add_argument("--early_stop_patience", type=int, default=50, help="Number of epochs/iterations with no improvement") # <
 parser.add_argument("--resume", action="store_true", help="resume from previous iteration")
