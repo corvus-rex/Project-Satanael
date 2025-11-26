@@ -44,22 +44,21 @@ class Trainer:
 
     def load(self):
         try:
-            print('aFox')
             gpath = sorted(glob(os.path.join(self.args.save_dir, "G*.pt")))[-1]
             self.netG.load_state_dict(torch.load(gpath, map_location="cuda"))
             self.iteration = int(os.path.basename(gpath)[1:-3])
             if self.args.global_rank == 0:
                 print(f"[**] Loading generator network from {gpath}")
-        except Exception:
-            pass
+        except Exception as e:
+            print(f"[!!] Failed to load generator checkpoint: {e}")
 
         try:
             dpath = sorted(glob(os.path.join(self.args.save_dir, "D*.pt")))[-1]
             self.netD.load_state_dict(torch.load(dpath, map_location="cuda"))
             if self.args.global_rank == 0:
                 print(f"[**] Loading discriminator network from {dpath}")
-        except Exception:
-            pass
+        except Exception as e:
+            print(f"[!!] Failed to load discriminator checkpoint: {e}")
 
         try:
             opath = sorted(glob(os.path.join(self.args.save_dir, "O*.pt")))[-1]
@@ -68,8 +67,8 @@ class Trainer:
             self.optimD.load_state_dict(data["optimD"])
             if self.args.global_rank == 0:
                 print(f"[**] Loading optimizer from {opath}")
-        except Exception:
-            pass
+        except Exception as e:
+            print(f"[!!] Failed to load optimizer checkpoint: {e}")
 
     def save(
         self,
