@@ -96,7 +96,7 @@ class Trainer:
             timer_data, timer_model = timer(), timer()
 
         # Early stopping variables
-        if self.args.early_stop == True:
+        if self.args.early_stop is True:
             best_metric = float("inf")
             patience_counter = 0
             metric_name = self.args.early_stop_metric
@@ -125,41 +125,51 @@ class Trainer:
             dis_loss, gen_loss = self.adv_loss(self.netD, comp_img, images, masks)
             losses["advg"] = gen_loss * self.args.adv_weight
 
-            # Backward
+            # -----------------------------
+            #  UPDATE GENERATOR (always)
+            # -----------------------------
             self.optimG.zero_grad()
-            self.optimD.zero_grad()
+            if not self.args.freeze_discriminator:
+                self.optimD.zero_grad()
 
             total_g_loss = sum(losses.values())
             total_g_loss.backward()
-
-            losses["advd"] = dis_loss
-            dis_loss.backward()
-
             self.optimG.step()
-            self.optimD.step()
+
+            # -----------------------------
+            #  UPDATE DISCRIMINATOR (only if unfrozen)
+            # -----------------------------
+            if not self.args.freeze_discriminator:
+                losses["advd"] = dis_loss
+                dis_loss.backward()
+                self.optimD.step()
+            else:
+                # still log something valid
+                losses["advd"] = dis_loss.detach()
 
             if self.args.global_rank == 0:
                 timer_model.hold()
                 timer_data.tic()
 
-            # Early stopping logic
-            if self.args.early_stop == True:
+            # -------- Early Stopping --------
+            if self.args.early_stop is True:
                 current_metric = losses[metric_name].item()
 
                 if current_metric < best_metric:
                     best_metric = current_metric
                     patience_counter = 0
-
                 else:
                     patience_counter += 1
 
                 if patience_counter >= patience_limit:
                     if self.args.global_rank == 0:
-                        print(f"\nEarly stopping triggered at iteration {self.iteration}. "
-                            f"{metric_name} did not improve for {patience_limit} steps.")
-                    break  # End training early
+                        print(
+                            f"\nEarly stopping triggered at iteration {self.iteration}. "
+                            f"{metric_name} did not improve for {patience_limit} steps."
+                        )
+                    break
 
-            # Logging
+            # -------- Logging --------
             if self.args.global_rank == 0 and (self.iteration % self.args.print_every == 0):
                 pbar.update(self.args.print_every)
                 description = f"mt:{timer_model.release():.1f}s, dt:{timer_data.release():.1f}s, "
@@ -167,7 +177,8 @@ class Trainer:
                     description += f"{key}:{val.item():.3f}, "
                     if self.args.tensorboard:
                         self.writer.add_scalar(key, val.item(), self.iteration)
-                pbar.set_description((description))
+
+                pbar.set_description(description)
 
                 if self.args.tensorboard:
                     self.writer.add_image("mask", make_grid(masks), self.iteration)
@@ -175,5 +186,6 @@ class Trainer:
                     self.writer.add_image("pred", make_grid((pred_img + 1.0) / 2.0), self.iteration)
                     self.writer.add_image("comp", make_grid((comp_img + 1.0) / 2.0), self.iteration)
 
+            # -------- Saving --------
             if self.args.global_rank == 0 and (self.iteration % self.args.save_every) == 0:
                 self.save()

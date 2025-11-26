@@ -135,6 +135,12 @@ class Discriminator(BaseNetwork):
 
         self.init_weights()
 
+        if self.args.freeze_discriminator:
+            for p in self.netD.parameters():
+                p.requires_grad = False
+            if self.args.global_rank == 0:
+                print("[**] Discriminator frozen: no D updates will occur.")
+
     def forward(self, x):
         feat = self.conv(x)
         return feat

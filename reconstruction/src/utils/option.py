@@ -17,7 +17,7 @@ parser.add_argument("--block_num", type=int, default=8, help="number of AOT bloc
 parser.add_argument("--rates", type=str, default="1+2+4+8", help="dilation rates used in AOT block")
 parser.add_argument("--gan_type", type=str, default="smgan", help="discriminator types")
 parser.add_argument("--freeze_generator", type=str, default="conf1", help="conf1: Freeze all but final layer of decoder, conf2: Freeze all but decoder, none: Do not freeze any layer") # <
-
+parser.add_argument("--freeze_discriminator", action="store_true", help="Freeze the entire discriminator during training") # <
 
 # hardware specifications
 parser.add_argument("--seed", type=int, default=2021, help="random seed")
