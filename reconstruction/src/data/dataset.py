@@ -18,8 +18,8 @@ class InpaintingData(Dataset):
         self.image_path = []
         for ext in ["*.jpg", "*.png"]:
             self.image_path.extend(glob(os.path.join(args.dir_image, ext)))
-        self.mask_path = glob(os.path.join(args.dir_mask, args.mask_type, "*.png"))
-        print(os.path.join(args.dir_mask, args.mask_type))
+        self.mask_path = glob(os.path.join(args.dir_mask, args.mask_type, "*.jpg"))
+        # print(os.path.join(args.dir_mask, args.mask_type))
 
         # augmentation
         self.img_trans = transforms.Compose(
