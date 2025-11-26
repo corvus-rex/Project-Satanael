@@ -122,7 +122,7 @@ class Discriminator(BaseNetwork):
     ):
         super(Discriminator, self).__init__()
         self.freeze_mode = getattr(args, "freeze_discriminator", None)
-        
+
         inc = 3
         self.conv = nn.Sequential(
             spectral_norm(nn.Conv2d(inc, 64, 4, stride=2, padding=1, bias=False)),
@@ -139,10 +139,8 @@ class Discriminator(BaseNetwork):
         self.init_weights()
 
         if self.freeze_mode:
-            for p in self.netD.parameters():
+            for p in self.parameters():
                 p.requires_grad = False
-            if self.args.global_rank == 0:
-                print("[**] Discriminator frozen: no D updates will occur.")
 
     def forward(self, x):
         feat = self.conv(x)
