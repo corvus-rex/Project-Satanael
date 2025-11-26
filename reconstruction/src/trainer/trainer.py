@@ -31,7 +31,7 @@ class Trainer:
         self.netG = net.InpaintGenerator(args).cuda()
         self.optimG = torch.optim.Adam(self.netG.parameters(), lr=args.lrg, betas=(args.beta1, args.beta2))
 
-        self.netD = net.Discriminator().cuda()
+        self.netD = net.Discriminator(args).cuda()
         self.optimD = torch.optim.Adam(self.netD.parameters(), lr=args.lrd, betas=(args.beta1, args.beta2))
 
         self.load()
