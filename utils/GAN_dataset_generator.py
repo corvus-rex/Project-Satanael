@@ -27,7 +27,7 @@ if __name__ == '__main__':
 
     parser = argparse.ArgumentParser()
     parser.add_argument('--image_size', type=int, default=512)
-    parser.add_argument('--N', type=int, default=5000)
+    parser.add_argument('--N', type=int, default=1000)
     parser.add_argument('--save_dir', type=str, default='../reconstruction/experiments/data/pconv/masks')
     args = parser.parse_args()
 
@@ -38,8 +38,8 @@ if __name__ == '__main__':
         canvas = np.zeros((args.image_size, args.image_size)).astype("i")
         ini_x = random.randint(0, args.image_size - 1)
         ini_y = random.randint(0, args.image_size - 1)
-        mask = random_walk(canvas, ini_x, ini_y, int((args.image_size ** 2)/4))
+        mask = random_walk(canvas, ini_x, ini_y, int((args.image_size ** 2)/2))
         print("save:", i, np.sum(mask))
 
         img = Image.fromarray(mask * 255).convert('1')
-        img.save('{:s}/{:06d}.jpg'.format(args.save_dir, i))
+        img.save('{:s}/{:06d}.jpg'.format(args.save_dir, i+1999))

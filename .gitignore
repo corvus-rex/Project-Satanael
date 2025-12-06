@@ -248,3 +248,5 @@ __marimo__/
 /reconstruction/experiments/data
 *.tar
 /results_cd_grey_test_final_eval_diag
+/results_mi_grey_test_final_eval
+/defense_pipeline/false_negs_MI
