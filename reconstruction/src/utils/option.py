@@ -37,7 +37,7 @@ parser.add_argument("--rec_loss", type=str, default="1*L1+250*Style+0.1*Perceptu
 parser.add_argument("--adv_weight", type=float, default=0.01, help="loss weight for adversarial loss")
 
 # training specifications
-parser.add_argument("--iterations", type=int, default=5000, help="the number of iterations for training") # <
+parser.add_argument("--iterations", type=int, default=100000, help="the number of iterations for training") # <
 parser.add_argument("--batch_size", type=int, default=8, help="batch size in each mini-batch")
 parser.add_argument("--port", type=int, default=22334, help="tcp port for distributed training")
 parser.add_argument("--early_stop", type=lambda x: x.lower() == "true", default=True, help="Enable or disable early stopping (True/False)")
