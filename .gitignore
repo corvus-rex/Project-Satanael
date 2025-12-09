@@ -251,3 +251,5 @@ __marimo__/
 /results_mi_grey_test_final_eval
 /defense_pipeline/false_negs_MI
 /reconstruction/experiments
+/defense_pipeline/false_negs_CD
+/results_cd_grey_test_final_eval_ablation
