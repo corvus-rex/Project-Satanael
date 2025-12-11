@@ -47,7 +47,7 @@ parser.add_argument("--resume", action="store_true", help="resume from previous 
 
 # log specifications
 parser.add_argument("--print_every", type=int, default=10, help="frequency for updating progress bar")
-parser.add_argument("--save_every", type=int, default=1000, help="frequency for saving models") # <
+parser.add_argument("--save_every", type=int, default=2000, help="frequency for saving models") # <
 parser.add_argument("--save_dir", type=str, default="../experiments", help="directory for saving models and logs")
 parser.add_argument(
     "--tensorboard", action="store_true", help="default: false, since it will slow training. use it for debugging"
