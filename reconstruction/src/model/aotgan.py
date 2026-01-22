@@ -7,8 +7,10 @@ from .common import BaseNetwork
 
 
 class InpaintGenerator(BaseNetwork):
-    def __init__(self, args):  # 1046
+    def __init__(self, args):
         super(InpaintGenerator, self).__init__()
+
+        self.freeze_mode = getattr(args, "freeze_generator", None)
 
         self.encoder = nn.Sequential(
             nn.ReflectionPad2d(3),
@@ -20,13 +22,47 @@ class InpaintGenerator(BaseNetwork):
             nn.ReLU(True),
         )
 
-        self.middle = nn.Sequential(*[AOTBlock(256, args.rates) for _ in range(args.block_num)])
+        self.middle = nn.Sequential(*[
+            AOTBlock(256, args.rates) for _ in range(args.block_num)
+        ])
 
         self.decoder = nn.Sequential(
-            UpConv(256, 128), nn.ReLU(True), UpConv(128, 64), nn.ReLU(True), nn.Conv2d(64, 3, 3, stride=1, padding=1)
+            UpConv(256, 128), nn.ReLU(True),
+            UpConv(128, 64), nn.ReLU(True),
+            nn.Conv2d(64, 3, 3, stride=1, padding=1)  # final head
         )
 
         self.init_weights()
+
+        # Apply chosen freezing mode
+        self.apply_freezing()
+
+    def apply_freezing(self):
+        if self.freeze_mode == "conf1":
+            self.freeze_all_but_last_layer()
+
+        elif self.freeze_mode == "conf2":
+            self.freeze_encoder_and_middle()
+
+    def freeze_all_but_last_layer(self):
+        # Freeze everything
+        for p in self.encoder.parameters(): p.requires_grad = False
+        for p in self.middle.parameters(): p.requires_grad = False
+        for p in self.decoder.parameters(): p.requires_grad = False
+
+        # Unfreeze last layer
+        last_layer = self.decoder[-1]  # Conv2d(64→3)
+        for p in last_layer.parameters():
+            p.requires_grad = True
+
+    def freeze_encoder_and_middle(self):
+        # Freeze encoder
+        for p in self.encoder.parameters(): p.requires_grad = False
+        # Freeze middle
+        for p in self.middle.parameters(): p.requires_grad = False
+        # Keep entire decoder trainable
+        for p in self.decoder.parameters(): p.requires_grad = True
+
 
     def forward(self, x, mask):
         x = torch.cat([x, mask], dim=1)
@@ -82,8 +118,11 @@ def my_layer_norm(feat):
 class Discriminator(BaseNetwork):
     def __init__(
         self,
+        args
     ):
         super(Discriminator, self).__init__()
+        self.freeze_mode = getattr(args, "freeze_discriminator", None)
+
         inc = 3
         self.conv = nn.Sequential(
             spectral_norm(nn.Conv2d(inc, 64, 4, stride=2, padding=1, bias=False)),
@@ -98,6 +137,10 @@ class Discriminator(BaseNetwork):
         )
 
         self.init_weights()
+
+        if self.freeze_mode:
+            for p in self.parameters():
+                p.requires_grad = False
 
     def forward(self, x):
         feat = self.conv(x)

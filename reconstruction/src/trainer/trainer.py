@@ -31,7 +31,7 @@ class Trainer:
         self.netG = net.InpaintGenerator(args).cuda()
         self.optimG = torch.optim.Adam(self.netG.parameters(), lr=args.lrg, betas=(args.beta1, args.beta2))
 
-        self.netD = net.Discriminator().cuda()
+        self.netD = net.Discriminator(args).cuda()
         self.optimD = torch.optim.Adam(self.netD.parameters(), lr=args.lrd, betas=(args.beta1, args.beta2))
 
         self.load()
@@ -44,31 +44,33 @@ class Trainer:
 
     def load(self):
         try:
-            gpath = sorted(glob(os.path.join(self.args.save_dir, "G*.pt")))[-1]
+            # print(os.path.join(self.args.save_dir, "G*.pt"))
+            # print(os.path.abspath(self.args.save_dir))
+            gpath = sorted(glob(os.path.join(self.args.save_dir, '..', "G*.pt")))[-1]
             self.netG.load_state_dict(torch.load(gpath, map_location="cuda"))
             self.iteration = int(os.path.basename(gpath)[1:-3])
             if self.args.global_rank == 0:
                 print(f"[**] Loading generator network from {gpath}")
-        except Exception:
-            pass
+        except Exception as e:
+            print(f"[!!] Failed to load generator checkpoint: {e}")
 
         try:
-            dpath = sorted(glob(os.path.join(self.args.save_dir, "D*.pt")))[-1]
+            dpath = sorted(glob(os.path.join(self.args.save_dir, '..', "D*.pt")))[-1]
             self.netD.load_state_dict(torch.load(dpath, map_location="cuda"))
             if self.args.global_rank == 0:
                 print(f"[**] Loading discriminator network from {dpath}")
-        except Exception:
-            pass
+        except Exception as e:
+            print(f"[!!] Failed to load discriminator checkpoint: {e}")
 
         try:
-            opath = sorted(glob(os.path.join(self.args.save_dir, "O*.pt")))[-1]
+            opath = sorted(glob(os.path.join(self.args.save_dir, '..', "O*.pt")))[-1]
             data = torch.load(opath, map_location="cuda")
             self.optimG.load_state_dict(data["optimG"])
             self.optimD.load_state_dict(data["optimD"])
             if self.args.global_rank == 0:
                 print(f"[**] Loading optimizer from {opath}")
-        except Exception:
-            pass
+        except Exception as e:
+            print(f"[!!] Failed to load optimizer checkpoint: {e}")
 
     def save(
         self,
@@ -76,10 +78,10 @@ class Trainer:
         if self.args.global_rank == 0:
             print(f"\nsaving {self.iteration} model to {self.args.save_dir} ...")
             torch.save(
-                self.netG.module.state_dict(), os.path.join(self.args.save_dir, f"G{str(self.iteration).zfill(7)}.pt")
+                self.netG.state_dict(), os.path.join(self.args.save_dir, f"G{str(self.iteration).zfill(7)}.pt")
             )
             torch.save(
-                self.netD.module.state_dict(), os.path.join(self.args.save_dir, f"D{str(self.iteration).zfill(7)}.pt")
+                self.netD.state_dict(), os.path.join(self.args.save_dir, f"D{str(self.iteration).zfill(7)}.pt")
             )
             torch.save(
                 {"optimG": self.optimG.state_dict(), "optimD": self.optimD.state_dict()},
@@ -89,8 +91,16 @@ class Trainer:
     def train(self):
         pbar = range(self.iteration, self.args.iterations)
         if self.args.global_rank == 0:
-            pbar = tqdm(range(self.args.iterations), initial=self.iteration, dynamic_ncols=True, smoothing=0.01)
+            pbar = tqdm(range(self.args.iterations), initial=self.iteration,
+                        dynamic_ncols=True, smoothing=0.01)
             timer_data, timer_model = timer(), timer()
+
+        # Early stopping variables
+        if self.args.early_stop is True:
+            best_metric = float("inf")
+            patience_counter = 0
+            metric_name = self.args.early_stop_metric
+            patience_limit = self.args.early_stop_patience
 
         for idx in pbar:
             self.iteration += 1
@@ -102,34 +112,64 @@ class Trainer:
                 timer_data.hold()
                 timer_model.tic()
 
-            # in: [rgb(3) + edge(1)]
+            # Forward
             pred_img = self.netG(images_masked, masks)
             comp_img = (1 - masks) * images + masks * pred_img
 
-            # reconstruction losses
+            # Reconstruction losses
             losses = {}
             for name, weight in self.args.rec_loss.items():
                 losses[name] = weight * self.rec_loss_func[name](pred_img, images)
 
-            # adversarial loss
+            # Adversarial losses
             dis_loss, gen_loss = self.adv_loss(self.netD, comp_img, images, masks)
             losses["advg"] = gen_loss * self.args.adv_weight
 
-            # backforward
+            # -----------------------------
+            #  UPDATE GENERATOR (always)
+            # -----------------------------
             self.optimG.zero_grad()
-            self.optimD.zero_grad()
-            sum(losses.values()).backward()
-            losses["advd"] = dis_loss
-            dis_loss.backward()
+            if not self.args.freeze_discriminator:
+                self.optimD.zero_grad()
+
+            total_g_loss = sum(losses.values())
+            total_g_loss.backward()
             self.optimG.step()
-            self.optimD.step()
+
+            # -----------------------------
+            #  UPDATE DISCRIMINATOR (only if unfrozen)
+            # -----------------------------
+            if not self.args.freeze_discriminator:
+                losses["advd"] = dis_loss
+                dis_loss.backward()
+                self.optimD.step()
+            else:
+                # still log something valid
+                losses["advd"] = dis_loss.detach()
 
             if self.args.global_rank == 0:
                 timer_model.hold()
                 timer_data.tic()
 
-            # logs
-            # scalar_reduced = reduce_loss_dict(losses, self.args.world_size)
+            # -------- Early Stopping --------
+            if self.args.early_stop is True:
+                current_metric = losses[metric_name].item()
+
+                if current_metric < best_metric:
+                    best_metric = current_metric
+                    patience_counter = 0
+                else:
+                    patience_counter += 1
+
+                if patience_counter >= patience_limit:
+                    if self.args.global_rank == 0:
+                        print(
+                            f"\nEarly stopping triggered at iteration {self.iteration}. "
+                            f"{metric_name} did not improve for {patience_limit} steps."
+                        )
+                    break
+
+            # -------- Logging --------
             if self.args.global_rank == 0 and (self.iteration % self.args.print_every == 0):
                 pbar.update(self.args.print_every)
                 description = f"mt:{timer_model.release():.1f}s, dt:{timer_data.release():.1f}s, "
@@ -137,12 +177,15 @@ class Trainer:
                     description += f"{key}:{val.item():.3f}, "
                     if self.args.tensorboard:
                         self.writer.add_scalar(key, val.item(), self.iteration)
-                pbar.set_description((description))
+
+                pbar.set_description(description)
+
                 if self.args.tensorboard:
                     self.writer.add_image("mask", make_grid(masks), self.iteration)
                     self.writer.add_image("orig", make_grid((images + 1.0) / 2.0), self.iteration)
                     self.writer.add_image("pred", make_grid((pred_img + 1.0) / 2.0), self.iteration)
                     self.writer.add_image("comp", make_grid((comp_img + 1.0) / 2.0), self.iteration)
 
+            # -------- Saving --------
             if self.args.global_rank == 0 and (self.iteration % self.args.save_every) == 0:
                 self.save()

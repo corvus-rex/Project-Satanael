@@ -16,8 +16,8 @@ def recompress_diff(imorig, smoothing_b=17, minQ=51, maxQ=100):
     for q in range(minQ, maxQ + 1):
         cv2.imwrite('jpg_recompress.jpg', imorig, [int(cv2.IMWRITE_JPEG_QUALITY), q])
         jpg_resave = cv2.imread('jpg_recompress.jpg').astype(float)
-        deltas = []
-        overall_delta = []
+        # deltas = []
+        # overall_delta = []
 
         imorig_disp = imorig[:height, :width, :].astype(float)
         comparison = np.square(imorig_disp - jpg_resave)
@@ -26,13 +26,14 @@ def recompress_diff(imorig, smoothing_b=17, minQ=51, maxQ=100):
         comparison = cv2.filter2D(comparison, -1, h)
 
         comparison = comparison[offset:-offset, offset:-offset, :]
-        deltas.append(np.mean(comparison, axis=2))
-        overall_delta.append(np.mean(deltas[-1]))
+        # deltas.append(np.mean(comparison, axis=2))
+        # overall_delta.append(np.mean(deltas[-1]))
 
-        minOverallDelta, minInd = min(overall_delta), np.argmin(overall_delta)
-        mins.append(minInd)
-        Output.append(minOverallDelta)
-        delta = deltas[minInd]
+        # minOverallDelta, minInd = min(overall_delta), np.argmin(overall_delta)
+        # mins.append(minInd)
+        # Output.append(minOverallDelta)
+        # delta = deltas[minInd]
+        delta = np.mean(comparison, axis=2)
         delta = (delta - np.min(delta)) / (np.max(delta) - np.min(delta) + 5e-12)
 
         disp_images.append(cv2.resize(delta.astype(np.float32), (delta.shape[1] // 4, delta.shape[0] // 4), interpolation=cv2.INTER_LINEAR))
